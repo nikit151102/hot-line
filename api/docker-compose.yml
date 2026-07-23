@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: tgHR
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - database_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d tgHR"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  back_tghr_department:
+    build:
+      context: .
+    container_name: back_tghr_department
+    ports:
+      - "8070:8070"
+    volumes:
+      - .:/app
+    environment:
+      - POSTGRES_HOST=postgres_db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=tgHR
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    networks:
+      - database_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  database_network:
+    external: true

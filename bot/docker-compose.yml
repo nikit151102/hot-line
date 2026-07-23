@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: paketontg_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - bot_data:/app/data  
+      - bot_logs:/app/logs 
+    networks:
+      - bot_network
+
+volumes:
+  bot_data:
+  bot_logs:
+
+networks:
+  bot_network:
+    driver: bridge
