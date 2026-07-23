@@ -3,31 +3,42 @@ from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 
+# --- Магазины ---
+class StoreBase(BaseModel):
+    name: str
+    address: Optional[str] = None
+
+class StoreCreate(StoreBase): pass
+
+class StoreResponse(StoreBase):
+    id: UUID
+    class Config: from_attributes = True
+
 # --- Каналы ---
 class HotlineChannelBase(BaseModel):
+    store_id: UUID
+    channel_type: str  # "MAX", "Сайт", "Телефон"
     name: str
     max_url: Optional[str] = None
     site_url: Optional[str] = None
 
 class HotlineChannelCreate(HotlineChannelBase): pass
+
 class HotlineChannelResponse(HotlineChannelBase):
     id: UUID
+    store: Optional[StoreResponse] = None # Чтобы видеть название магазина при получении канала
     class Config: from_attributes = True
 
-# --- Типы обращений ---
+# --- Типы обращений (без изменений) ---
 class RequestTypeBase(BaseModel):
     name: str
     description: Optional[str] = None
-    parent_id: Optional[UUID] = None  # <-- НОВОЕ ПОЛЕ
+    parent_id: Optional[UUID] = None
 
 class RequestTypeCreate(RequestTypeBase): pass
 
 class RequestTypeResponse(RequestTypeBase):
     id: UUID
-    # Можно раскомментировать, если нужно сразу отдавать дерево, 
-    # но для бота проще делать два отдельных запроса (см. ниже)
-    # children: List['RequestTypeResponse'] = [] 
-    
     class Config: from_attributes = True
 
 # --- Журнал обращений ---

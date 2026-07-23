@@ -3,13 +3,28 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from uuid import UUID
 from typing import Optional
-from models import HotlineChannel, RequestType, HotlineJournal
-from schemas import HotlineChannelCreate, RequestTypeCreate, HotlineJournalCreate, HotlineJournalUpdate
+from models import Store, HotlineChannel, RequestType, HotlineJournal
+from schemas import StoreCreate, HotlineChannelCreate, RequestTypeCreate, HotlineJournalCreate, HotlineJournalUpdate
+
+# ================= МАГАЗИНЫ =================
+async def get_stores(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(Store).offset(skip).limit(limit))
+    return result.scalars().all()
+
+async def create_store(db: AsyncSession, store: StoreCreate):
+    db_store = Store(**store.model_dump())
+    db.add(db_store)
+    await db.commit()
+    await db.refresh(db_store)
+    return db_store
 
 # ================= КАНАЛЫ =================
-async def get_channels(db: AsyncSession, skip: int = 0, limit: int = 100):
-    result = await db.execute(select(HotlineChannel).offset(skip).limit(limit))
-    return result.scalars().all()
+async def get_channels(db: AsyncSession, skip: int = 0, limit: int = 100, store_id: Optional[UUID] = None):
+    query = select(HotlineChannel).options(joinedload(HotlineChannel.store)).offset(skip).limit(limit)
+    if store_id:
+        query = query.where(HotlineChannel.store_id == store_id)
+    result = await db.execute(query)
+    return result.scalars().unique().all()
 
 async def create_channel(db: AsyncSession, channel: HotlineChannelCreate):
     db_channel = HotlineChannel(**channel.model_dump())
@@ -19,14 +34,10 @@ async def create_channel(db: AsyncSession, channel: HotlineChannelCreate):
     return db_channel
 
 # ================= ТИПЫ ОБРАЩЕНИЙ =================
+# (Оставляем как было, с get_request_types и create_request_type)
 async def get_request_types(db: AsyncSession, skip: int = 0, limit: int = 100, parent_id: Optional[UUID] = None):
     query = select(RequestType).offset(skip).limit(limit)
-    
-    # Если передан parent_id, возвращаем только подтипы этого родителя
-    # Если parent_id не передан (None), возвращаем только главные типы (у которых parent_id тоже NULL)
-    # Если вы хотите возвращать ВСЕ типы при parent_id=None, уберите строку ниже
     query = query.where(RequestType.parent_id == parent_id)
-    
     result = await db.execute(query)
     return result.scalars().all()
 
@@ -38,13 +49,18 @@ async def create_request_type(db: AsyncSession, req_type: RequestTypeCreate):
     return db_req_type
 
 # ================= ЖУРНАЛ =================
+# (Оставляем как было, но добавляем joinedload для channel.store, если нужно в аналитике)
 async def get_journals(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(HotlineJournal)
-        .options(joinedload(HotlineJournal.channel), joinedload(HotlineJournal.request_type))
+        .options(
+            joinedload(HotlineJournal.channel).joinedload(HotlineChannel.store), # Загружаем и канал, и магазин
+            joinedload(HotlineJournal.request_type)
+        )
         .offset(skip).limit(limit)
     )
     return result.scalars().unique().all()
+
 
 async def get_journal_by_id(db: AsyncSession, journal_id: UUID):
     result = await db.execute(
