@@ -1,22 +1,22 @@
 version: '3.8'
 
 services:
-  postgres_db:
+  hot_line_db:
     image: postgres:15-alpine
-    container_name: postgres_db
+    container_name: hot_line_db
     restart: always
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: tgHR
+      POSTGRES_DB: hot_line
     ports:
-      - "5432:5432"
+      - "6755:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - database_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d tgHR"]
+      test: ["CMD-SHELL", "pg_isready -U root -d hot_line"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,17 +26,18 @@ services:
       context: .
     container_name: back_tghr_department
     ports:
-      - "8070:8070"
+      - "6710:6710"
+      - "6711:6711"
     volumes:
       - .:/app
     environment:
-      - POSTGRES_HOST=postgres_db
+      - POSTGRES_HOST=hot_line_db
       - POSTGRES_PORT=5432
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
-      - POSTGRES_DB=tgHR
+      - POSTGRES_DB=hot_line
     depends_on:
-      postgres_db:
+      hot_line_db:
         condition: service_healthy
     networks:
       - database_network
