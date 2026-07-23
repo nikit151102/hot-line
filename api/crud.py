@@ -30,6 +30,7 @@ async def delete_store(db: AsyncSession, store_id: UUID):
     if store:
         store.is_deleted = True
         await db.commit()
+        await db.refresh(store) 
     return store
 
 # ================= КАНАЛЫ =================
@@ -48,7 +49,6 @@ async def create_channel(db: AsyncSession, channel: HotlineChannelCreate):
     db.add(db_channel)
     await db.commit()
     
-    # ИСПРАВЛЕНИЕ MISSINGGREENLET: Явно загружаем связь store перед возвратом
     result = await db.execute(
         select(HotlineChannel)
         .options(joinedload(HotlineChannel.store))
@@ -62,6 +62,7 @@ async def delete_channel(db: AsyncSession, channel_id: UUID):
     if channel:
         channel.is_deleted = True
         await db.commit()
+        await db.refresh(channel)
     return channel
 
 # ================= ТИПЫ ОБРАЩЕНИЙ =================
@@ -87,6 +88,7 @@ async def delete_request_type(db: AsyncSession, req_type_id: UUID):
     if req_type:
         req_type.is_deleted = True
         await db.commit()
+        await db.refresh(req_type)
     return req_type
 
 # ================= ЖУРНАЛ =================
@@ -131,8 +133,9 @@ async def update_journal(db: AsyncSession, journal_id: UUID, journal_update: Hot
 async def delete_journal(db: AsyncSession, journal_id: UUID):
     db_journal = await get_journal_by_id(db, journal_id)
     if not db_journal: return None
-    db_journal.is_deleted = True # Soft delete вместо db.delete()
+    db_journal.is_deleted = True 
     await db.commit()
+    await db.refresh(db_journal)
     return db_journal
 
 # ==========================================
@@ -246,7 +249,6 @@ async def get_hotline_stats(db: AsyncSession, days: int = 30) -> dict:
         for row in store_channel_res.all()
     ]
 
-    # Тип обращения vs Тип канала (Жалобы чаще с телефона или с сайта?)
     type_channel_res = await db.execute(
         select(RequestType.name, HotlineChannel.channel_type, func.count(HotlineJournal.id))
         .join(HotlineChannel, HotlineJournal.channel_id == HotlineChannel.id, isouter=True)
