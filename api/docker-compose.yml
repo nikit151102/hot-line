@@ -12,7 +12,7 @@ services:
     ports:
       - "6755:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - hot_line_db_data:/var/lib/postgresql/data
     networks:
       - hot_line_network
     healthcheck:
@@ -43,7 +43,7 @@ services:
       - hot_line_network
 
 volumes:
-  postgres_data:
+  hot_line_db_data:
     driver: local
 
 networks:
