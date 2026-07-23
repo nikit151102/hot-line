@@ -21,10 +21,10 @@ services:
       timeout: 5s
       retries: 5
 
-  back_tghr_department:
+  hot_line_api:
     build:
       context: .
-    container_name: back_tghr_department
+    container_name: hot_line_api
     ports:
       - "6710:6710"
       - "6711:6711"
