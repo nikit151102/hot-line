@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - database_network
+      - hot_line_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root -d hot_line"]
       interval: 5s
@@ -40,12 +40,12 @@ services:
       hot_line_db:
         condition: service_healthy
     networks:
-      - database_network
+      - hot_line_network
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  database_network:
+  hot_line_network:
     external: true
