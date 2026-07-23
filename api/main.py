@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.hotline import router as hotline_router
 
 create_db_if_not_exists()
-create_tables()
+# create_tables()
 
 # выполняем autogenerate+upgrade
 run_auto_migrations()
