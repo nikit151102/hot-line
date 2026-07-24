@@ -1,23 +1,47 @@
+from __future__ import annotations  # <-- ВАЖНО: Позволяет ссылаться на классы, объявленные ниже
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
 
-# --- Базовые поля для Soft Delete ---
+
+# ==========================================
+# 1. БАЗОВЫЕ МИКСИНЫ
+# ==========================================
 class SoftDeleteMixin(BaseModel):
     is_deleted: bool = False
 
-# --- Магазины ---
+
+# ==========================================
+# 2. ТИПЫ ЗАЯВИТЕЛЕЙ
+# ==========================================
+class RequesterTypeBase(BaseModel):
+    name: str
+    code: str  # 'client', 'employee', 'partner', 'anonymous'
+
+class RequesterTypeCreate(RequesterTypeBase): pass
+
+class RequesterTypeResponse(RequesterTypeBase, SoftDeleteMixin):
+    id: UUID
+    class Config: 
+        from_attributes = True
+
+
+# ==========================================
+# 3. МАГАЗИНЫ И КАНАЛЫ (Добавлено, чтобы Journal мог на них ссылаться)
+# ==========================================
 class StoreBase(BaseModel):
     name: str
     address: Optional[str] = None
 
 class StoreCreate(StoreBase): pass
+
 class StoreResponse(StoreBase, SoftDeleteMixin):
     id: UUID
-    class Config: from_attributes = True
+    class Config: 
+        from_attributes = True
 
-# --- Каналы ---
+
 class HotlineChannelBase(BaseModel):
     store_id: UUID
     channel_type: str
@@ -26,23 +50,41 @@ class HotlineChannelBase(BaseModel):
     site_url: Optional[str] = None
 
 class HotlineChannelCreate(HotlineChannelBase): pass
+
 class HotlineChannelResponse(HotlineChannelBase, SoftDeleteMixin):
     id: UUID
     store: Optional[StoreResponse] = None
-    class Config: from_attributes = True
+    class Config: 
+        from_attributes = True
 
-# --- Типы обращений ---
+
+# ==========================================
+# 4. ТИПЫ ОБРАЩЕНИЙ
+# ==========================================
 class RequestTypeBase(BaseModel):
     name: str
     description: Optional[str] = None
     parent_id: Optional[UUID] = None
+    allowed_requester_ids: List[UUID] = []
 
 class RequestTypeCreate(RequestTypeBase): pass
+
+class RequestTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    parent_id: Optional[UUID] = None
+    allowed_requester_ids: Optional[List[UUID]] = None
+
 class RequestTypeResponse(RequestTypeBase, SoftDeleteMixin):
     id: UUID
-    class Config: from_attributes = True
+    allowed_requesters: List[RequesterTypeResponse] = []
+    class Config: 
+        from_attributes = True
 
-# --- Журнал ---
+
+# ==========================================
+# 5. ЖУРНАЛ ОБРАЩЕНИЙ
+# ==========================================
 class HotlineJournalBase(BaseModel):
     received_at: Optional[datetime] = None
     channel_id: Optional[UUID] = None
@@ -52,8 +94,11 @@ class HotlineJournalBase(BaseModel):
     decision_date: Optional[datetime] = None
     administrator: Optional[str] = None
     request_type_id: Optional[UUID] = None
+    requester_type_id: Optional[UUID] = None 
+    contact_info: Optional[str] = None       
 
 class HotlineJournalCreate(HotlineJournalBase): pass
+
 class HotlineJournalUpdate(BaseModel):
     received_at: Optional[datetime] = None
     channel_id: Optional[UUID] = None
@@ -63,34 +108,22 @@ class HotlineJournalUpdate(BaseModel):
     decision_date: Optional[datetime] = None
     administrator: Optional[str] = None
     request_type_id: Optional[UUID] = None
+    requester_type_id: Optional[UUID] = None
+    contact_info: Optional[str] = None
 
 class HotlineJournalResponse(HotlineJournalBase, SoftDeleteMixin):
     id: UUID
+    # Теперь эти классы уже объявлены выше, ошибки не будет
     channel: Optional[HotlineChannelResponse] = None
     request_type: Optional[RequestTypeResponse] = None
-    class Config: from_attributes = True
+    requester_type: Optional[RequesterTypeResponse] = None 
+    class Config: 
+        from_attributes = True
+
 
 # ==========================================
-# --- СХЕМЫ ДЛЯ СТАТИСТИКИ И МЕТРИК ---
+# 6. СТАТИСТИКА И МЕТРИКИ (Убраны дубликаты, оставлена полная версия)
 # ==========================================
-class StatItem(BaseModel):
-    label: str
-    count: int
-
-class TimelineItem(BaseModel):
-    date: str  # Формат YYYY-MM-DD
-    count: int
-
-class HotlineStatsResponse(BaseModel):
-    total_requests: int
-    resolved_requests: int  # Где есть decision_date
-    avg_resolution_hours: Optional[float] = None
-    by_channel_type: List[StatItem]
-    by_store: List[StatItem]
-    by_request_type: List[StatItem]
-    timeline_last_30_days: List[TimelineItem]
-
-
 class StatItem(BaseModel):
     label: str
     count: int
@@ -109,8 +142,8 @@ class WeeklyStatItem(BaseModel):
     count: int
 
 class CrossSectionItem(BaseModel):
-    category_1: str  # Например, Название магазина
-    category_2: str  # Например, Тип канала (MAX/Сайт)
+    category_1: str  
+    category_2: str  
     count: int
 
 class HotlineStatsResponse(BaseModel):
@@ -118,20 +151,23 @@ class HotlineStatsResponse(BaseModel):
     total_requests: int
     resolved_requests: int
     unresolved_requests: int
-    resolution_rate_percent: float  # Процент решенных
+    resolution_rate_percent: float  
     avg_resolution_hours: Optional[float] = None
 
-    # 2. Временные ряды (для линейных графиков)
-    timeline_daily: List[TimelineItem]       # Динамика по дням
-    timeline_hourly: List[HourlyStatItem]    # Пиковые часы (для графиков смен)
-    timeline_weekly: List[WeeklyStatItem]    # Загрузка по дням недели
+    # 2. Временные ряды
+    timeline_daily: List[TimelineItem]       
+    timeline_hourly: List[HourlyStatItem]    
+    timeline_weekly: List[WeeklyStatItem]    
 
-    # 3. Категориальные разрезы (для круговых/столбчатых диаграмм)
+    # 3. Категориальные разрезы
     by_channel_type: List[StatItem]
     by_store: List[StatItem]
     by_request_type: List[StatItem]
-    by_administrator: List[StatItem]         # Кто больше всех обрабатывает
+    by_administrator: List[StatItem]         
 
-    # 4. Кросс-аналитика (Матрицы / Heatmaps)
-    store_vs_channel: List[CrossSectionItem] # Какой канал популярен в каком магазине
-    type_vs_channel: List[CrossSectionItem]  # Какие жалобы чаще приходят с сайта, а какие из MAX
+    # 4. Кросс-аналитика (Матрицы)
+    store_vs_channel: List[CrossSectionItem] 
+    type_vs_channel: List[CrossSectionItem]  
+
+    class Config:
+        from_attributes = True
