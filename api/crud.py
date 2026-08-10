@@ -445,8 +445,41 @@ REQUEST_TYPES_TREE = [
 async def init_default_data(db: AsyncSession):
     created_items = []
     
+    NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
+    
+    # --- 0. ДЕФОЛТНЫЕ ЗАПИСИ (С НУЛЕВЫМ UUID) ---
+    # Добавляем записи с "пустым" UUID, чтобы избежать ошибок Foreign Key, 
+    # если фронтенд или бот присылает 00000000-0000-0000-0000-000000000000 вместо реального ID
+    
+    # Дефолтный магазин
+    result_def_store = await db.execute(select(Store).where(Store.id == NIL_UUID))
+    if not result_def_store.scalar_one_or_none():
+        db.add(Store(id=NIL_UUID, name="Не указан", address="Не указан"))
+        created_items.append("🏪 Магазин по умолчанию (0000...)")
+        
+    # Дефолтный заявитель
+    result_def_req = await db.execute(select(RequesterType).where(RequesterType.id == NIL_UUID))
+    if not result_def_req.scalar_one_or_none():
+        db.add(RequesterType(id=NIL_UUID, name="Не указан", code="none"))
+        created_items.append("👤 Заявитель по умолчанию (0000...)")
+    
+    # Дефолтный тип обращения
+    result_def_rt = await db.execute(select(RequestType).where(RequestType.id == NIL_UUID))
+    if not result_def_rt.scalar_one_or_none():
+        db.add(RequestType(id=NIL_UUID, name="Не указан", description="Тип обращения не выбран"))
+        created_items.append("📂 Тип обращения по умолчанию (0000...)")
+        
+    # Дефолтный канал (store_id=NIL_UUID используем на случай, если поле в БД NOT NULL)
+    result_def_ch = await db.execute(select(HotlineChannel).where(HotlineChannel.id == NIL_UUID))
+    if not result_def_ch.scalar_one_or_none():
+        db.add(HotlineChannel(id=NIL_UUID, name="Не указан", channel_type="Не указан", store_id=NIL_UUID))
+        created_items.append("📞 Канал по умолчанию (0000...)")
+
+    # Сохраняем дефолтные записи в транзакцию, чтобы они были доступны для связей ниже
+    await db.flush()
+    
     # 1. Заявители
-    requester_map = {}
+    requester_map = {"none": NIL_UUID}
     for r_data in REQUESTER_TYPES_DATA:
         result = await db.execute(select(RequesterType).where(RequesterType.code == r_data["code"]))
         req_type = result.scalar_one_or_none()
