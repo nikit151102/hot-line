@@ -39,7 +39,7 @@ async def delete_requester_type(db: AsyncSession, obj_id: UUID):
     if obj:
         obj.is_deleted = True
         await db.commit()
-        await db.refresh(obj) # Предотвращает MissingGreenlet
+        await db.refresh(obj)
     return obj
 
 
@@ -492,25 +492,44 @@ async def init_default_data(db: AsyncSession):
 
     # 2. Типы обращений
     for type_data in REQUEST_TYPES_TREE:
+        # Ищем или создаем родителя
         result_parent = await db.execute(select(RequestType).where(RequestType.name == type_data["name"], RequestType.parent_id == None))
         parent_type = result_parent.scalar_one_or_none()
+        
         if not parent_type:
             parent_type = RequestType(name=type_data["name"], description=type_data["description"])
             db.add(parent_type)
             await db.flush()
             created_items.append(f"📂 Тип: {type_data['name']}")
         
+        # Собираем все allowed_codes для родителя из его детей
+        parent_allowed_codes = set()
+        
         for child_data in type_data.get("children", []):
+            # Ищем или создаем ребенка
             result_child = await db.execute(select(RequestType).where(RequestType.name == child_data["name"], RequestType.parent_id == parent_type.id))
-            if not result_child.scalar_one_or_none():
+            child_type = result_child.scalar_one_or_none()
+            
+            if not child_type:
                 child_type = RequestType(name=child_data["name"], description=child_data["description"], parent_id=parent_type.id)
-                allowed_codes = child_data.get("allowed", ["client", "employee", "partner", "anonymous"])
-                allowed_ids = [requester_map[code] for code in allowed_codes if code in requester_map]
-                if allowed_ids:
-                    req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(allowed_ids)))
-                    child_type.allowed_requesters = req_result.scalars().all()
                 db.add(child_type)
                 created_items.append(f"  ↳ Подтип: {child_data['name']}")
+            
+            # Определяем allowed_codes для ребенка
+            child_allowed_codes = child_data.get("allowed", ["client", "employee", "partner", "anonymous"])
+            parent_allowed_codes.update(child_allowed_codes)
+            
+            # Устанавливаем связи для ребенка
+            child_allowed_ids = [requester_map[code] for code in child_allowed_codes if code in requester_map]
+            if child_allowed_ids:
+                req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(child_allowed_ids)))
+                child_type.allowed_requesters = req_result.scalars().all()
+        
+        # Устанавливаем связи для родителя (объединение всех детей)
+        parent_allowed_ids = [requester_map[code] for code in parent_allowed_codes if code in requester_map]
+        if parent_allowed_ids:
+            req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(parent_allowed_ids)))
+            parent_type.allowed_requesters = req_result.scalars().all()
 
     # 3. Магазины и каналы
     for data in STORES_DATA:
