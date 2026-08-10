@@ -442,40 +442,33 @@ REQUEST_TYPES_TREE = [
     },
 ]
 
+
 async def init_default_data(db: AsyncSession):
     created_items = []
     
     NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
     
     # --- 0. ДЕФОЛТНЫЕ ЗАПИСИ (С НУЛЕВЫМ UUID) ---
-    # Добавляем записи с "пустым" UUID, чтобы избежать ошибок Foreign Key, 
-    # если фронтенд или бот присылает 00000000-0000-0000-0000-000000000000 вместо реального ID
-    
-    # Дефолтный магазин
     result_def_store = await db.execute(select(Store).where(Store.id == NIL_UUID))
     if not result_def_store.scalar_one_or_none():
         db.add(Store(id=NIL_UUID, name="Не указан", address="Не указан"))
         created_items.append("🏪 Магазин по умолчанию (0000...)")
         
-    # Дефолтный заявитель
     result_def_req = await db.execute(select(RequesterType).where(RequesterType.id == NIL_UUID))
     if not result_def_req.scalar_one_or_none():
         db.add(RequesterType(id=NIL_UUID, name="Не указан", code="none"))
         created_items.append("👤 Заявитель по умолчанию (0000...)")
     
-    # Дефолтный тип обращения
     result_def_rt = await db.execute(select(RequestType).where(RequestType.id == NIL_UUID))
     if not result_def_rt.scalar_one_or_none():
         db.add(RequestType(id=NIL_UUID, name="Не указан", description="Тип обращения не выбран"))
         created_items.append("📂 Тип обращения по умолчанию (0000...)")
         
-    # Дефолтный канал (store_id=NIL_UUID используем на случай, если поле в БД NOT NULL)
     result_def_ch = await db.execute(select(HotlineChannel).where(HotlineChannel.id == NIL_UUID))
     if not result_def_ch.scalar_one_or_none():
         db.add(HotlineChannel(id=NIL_UUID, name="Не указан", channel_type="Не указан", store_id=NIL_UUID))
         created_items.append("📞 Канал по умолчанию (0000...)")
 
-    # Сохраняем дефолтные записи в транзакцию, чтобы они были доступны для связей ниже
     await db.flush()
     
     # 1. Заявители
@@ -502,6 +495,9 @@ async def init_default_data(db: AsyncSession):
             await db.flush()
             created_items.append(f"📂 Тип: {type_data['name']}")
         
+        # Явно загружаем связь allowed_requesters для родителя
+        await db.refresh(parent_type, attribute_names=['allowed_requesters'])
+        
         # Собираем все allowed_codes для родителя из его детей
         parent_allowed_codes = set()
         
@@ -513,7 +509,11 @@ async def init_default_data(db: AsyncSession):
             if not child_type:
                 child_type = RequestType(name=child_data["name"], description=child_data["description"], parent_id=parent_type.id)
                 db.add(child_type)
+                await db.flush()  # ВАЖНО: flush перед изменением связей
                 created_items.append(f"  ↳ Подтип: {child_data['name']}")
+            
+            # Явно загружаем связь для ребенка
+            await db.refresh(child_type, attribute_names=['allowed_requesters'])
             
             # Определяем allowed_codes для ребенка
             child_allowed_codes = child_data.get("allowed", ["client", "employee", "partner", "anonymous"])
@@ -523,13 +523,17 @@ async def init_default_data(db: AsyncSession):
             child_allowed_ids = [requester_map[code] for code in child_allowed_codes if code in requester_map]
             if child_allowed_ids:
                 req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(child_allowed_ids)))
-                child_type.allowed_requesters = req_result.scalars().all()
+                requesters = req_result.scalars().all()
+                child_type.allowed_requesters = requesters
+                await db.flush()  # Сохраняем изменения связей
         
         # Устанавливаем связи для родителя (объединение всех детей)
         parent_allowed_ids = [requester_map[code] for code in parent_allowed_codes if code in requester_map]
         if parent_allowed_ids:
             req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(parent_allowed_ids)))
-            parent_type.allowed_requesters = req_result.scalars().all()
+            requesters = req_result.scalars().all()
+            parent_type.allowed_requesters = requesters
+            await db.flush()
 
     # 3. Магазины и каналы
     for data in STORES_DATA:
