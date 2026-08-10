@@ -215,7 +215,7 @@ async def delete_request_type(db: AsyncSession, obj_id: UUID):
 
 
 # ==============================================================================
-# 5. ЖУРНАЛ ОБРАЩЕНИЙ (ИСПРАВЛЕНО: MissingGreenlet + IntegrityError)
+# 5. ЖУРНАЛ ОБРАЩЕНИЙ (ИСПРАВЛЕНО: MissingGreenlet при db_journal.id)
 # ==============================================================================
 async def get_journals(
     db: AsyncSession, skip: int = 0, limit: int = 100, 
@@ -279,11 +279,15 @@ async def create_journal(db: AsyncSession, journal: HotlineJournalCreate):
     
     db_journal = HotlineJournal(**data_dict) 
     db.add(db_journal)
+    
+    # ВАЖНО: flush() чтобы получить ID до commit (иначе после commit объект будет expired)
+    await db.flush()
+    journal_id = db_journal.id  # Сохраняем ID пока объект не expired
+    
     await db.commit()
     
-    # ВАЖНО: возвращаем через get_journal_by_id, чтобы все связи были загружены
-    # и не было MissingGreenlet при сериализации ответа Pydantic'ом
-    return await get_journal_by_id(db, db_journal.id)
+    # Возвращаем через get_journal_by_id, чтобы все связи были загружены
+    return await get_journal_by_id(db, journal_id)
 
 async def update_journal(db: AsyncSession, journal_id: UUID, journal_update: HotlineJournalUpdate):
     db_journal = await get_journal_by_id(db, journal_id)
@@ -294,7 +298,9 @@ async def update_journal(db: AsyncSession, journal_id: UUID, journal_update: Hot
     
     for key, value in validated_data.items():
         setattr(db_journal, key, value)
-        
+    
+    # flush() перед commit для избежания проблем с expired объектами
+    await db.flush()
     await db.commit()
     
     # Возвращаем актуальный объект с загруженными связями
@@ -304,6 +310,7 @@ async def delete_journal(db: AsyncSession, journal_id: UUID):
     db_journal = await get_journal_by_id(db, journal_id)
     if not db_journal: return None
     db_journal.is_deleted = True
+    await db.flush()
     await db.commit()
     await db.refresh(db_journal)
     return db_journal
