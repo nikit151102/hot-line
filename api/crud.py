@@ -16,6 +16,39 @@ from schemas import (
 import uuid
 
 
+NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
+
+
+# ==============================================================================
+# ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ: ВАЛИДАЦИЯ FOREIGN KEYS
+# ==============================================================================
+async def _validate_journal_keys(db: AsyncSession, journal_data: dict) -> dict:
+    """
+    Проверяет существование внешних ключей.
+    Если ID нет в БД (например, бот прислал старый UUID из кэша), 
+    заменяет его на NIL_UUID. Это предотвращает IntegrityError / 500.
+    """
+    # channel_id
+    if journal_data.get("channel_id") and journal_data["channel_id"] != NIL_UUID:
+        exists = await db.scalar(select(HotlineChannel.id).where(HotlineChannel.id == journal_data["channel_id"]))
+        if not exists:
+            journal_data["channel_id"] = NIL_UUID
+
+    # requester_type_id
+    if journal_data.get("requester_type_id") and journal_data["requester_type_id"] != NIL_UUID:
+        exists = await db.scalar(select(RequesterType.id).where(RequesterType.id == journal_data["requester_type_id"]))
+        if not exists:
+            journal_data["requester_type_id"] = NIL_UUID
+
+    # request_type_id
+    if journal_data.get("request_type_id") and journal_data["request_type_id"] != NIL_UUID:
+        exists = await db.scalar(select(RequestType.id).where(RequestType.id == journal_data["request_type_id"]))
+        if not exists:
+            journal_data["request_type_id"] = NIL_UUID
+            
+    return journal_data
+
+
 # ==============================================================================
 # 1. ТИПЫ ЗАЯВИТЕЛЕЙ
 # ==============================================================================
@@ -182,7 +215,7 @@ async def delete_request_type(db: AsyncSession, obj_id: UUID):
 
 
 # ==============================================================================
-# 5. ЖУРНАЛ ОБРАЩЕНИЙ
+# 5. ЖУРНАЛ ОБРАЩЕНИЙ (ИСПРАВЛЕНО: MissingGreenlet + IntegrityError)
 # ==============================================================================
 async def get_journals(
     db: AsyncSession, skip: int = 0, limit: int = 100, 
@@ -198,7 +231,7 @@ async def get_journals(
 ):
     query = select(HotlineJournal).options(
         joinedload(HotlineJournal.channel).joinedload(HotlineChannel.store),
-        joinedload(HotlineJournal.request_type),
+        joinedload(HotlineJournal.request_type).joinedload(RequestType.allowed_requesters),
         joinedload(HotlineJournal.requester_type)
     )
     if not include_deleted:
@@ -227,31 +260,45 @@ async def get_journals(
     return result.scalars().unique().all()
 
 async def get_journal_by_id(db: AsyncSession, journal_id: UUID):
+    """Загружает обращение со ВСЕМИ вложенными связями (для сериализации FastAPI)."""
     result = await db.execute(
         select(HotlineJournal)
-        .options(joinedload(HotlineJournal.channel), joinedload(HotlineJournal.request_type), joinedload(HotlineJournal.requester_type))
+        .options(
+            joinedload(HotlineJournal.channel).joinedload(HotlineChannel.store),
+            joinedload(HotlineJournal.request_type).joinedload(RequestType.allowed_requesters),
+            joinedload(HotlineJournal.requester_type)
+        )
         .where(HotlineJournal.id == journal_id)
     )
     return result.scalars().unique().first()
 
 async def create_journal(db: AsyncSession, journal: HotlineJournalCreate):
-    db_journal = HotlineJournal(**journal.model_dump()) 
+    # Защита от битых UUID (если бот прислал старый ID)
+    data_dict = journal.model_dump()
+    data_dict = await _validate_journal_keys(db, data_dict)
+    
+    db_journal = HotlineJournal(**data_dict) 
     db.add(db_journal)
     await db.commit()
-    await db.refresh(db_journal, attribute_names=['channel', 'request_type', 'requester_type'])
-    return db_journal
+    
+    # ВАЖНО: возвращаем через get_journal_by_id, чтобы все связи были загружены
+    # и не было MissingGreenlet при сериализации ответа Pydantic'ом
+    return await get_journal_by_id(db, db_journal.id)
 
 async def update_journal(db: AsyncSession, journal_id: UUID, journal_update: HotlineJournalUpdate):
     db_journal = await get_journal_by_id(db, journal_id)
     if not db_journal: return None
     
     update_data = journal_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
+    validated_data = await _validate_journal_keys(db, update_data)
+    
+    for key, value in validated_data.items():
         setattr(db_journal, key, value)
         
     await db.commit()
-    await db.refresh(db_journal, attribute_names=['channel', 'request_type', 'requester_type'])
-    return db_journal
+    
+    # Возвращаем актуальный объект с загруженными связями
+    return await get_journal_by_id(db, journal_id)
 
 async def delete_journal(db: AsyncSession, journal_id: UUID):
     db_journal = await get_journal_by_id(db, journal_id)
@@ -442,11 +489,8 @@ REQUEST_TYPES_TREE = [
     },
 ]
 
-
 async def init_default_data(db: AsyncSession):
     created_items = []
-    
-    NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
     
     # --- 0. ДЕФОЛТНЫЕ ЗАПИСИ (С НУЛЕВЫМ UUID) ---
     result_def_store = await db.execute(select(Store).where(Store.id == NIL_UUID))
@@ -485,7 +529,6 @@ async def init_default_data(db: AsyncSession):
 
     # 2. Типы обращений
     for type_data in REQUEST_TYPES_TREE:
-        # Ищем или создаем родителя
         result_parent = await db.execute(select(RequestType).where(RequestType.name == type_data["name"], RequestType.parent_id == None))
         parent_type = result_parent.scalar_one_or_none()
         
@@ -495,44 +538,34 @@ async def init_default_data(db: AsyncSession):
             await db.flush()
             created_items.append(f"📂 Тип: {type_data['name']}")
         
-        # Явно загружаем связь allowed_requesters для родителя
         await db.refresh(parent_type, attribute_names=['allowed_requesters'])
-        
-        # Собираем все allowed_codes для родителя из его детей
         parent_allowed_codes = set()
         
         for child_data in type_data.get("children", []):
-            # Ищем или создаем ребенка
             result_child = await db.execute(select(RequestType).where(RequestType.name == child_data["name"], RequestType.parent_id == parent_type.id))
             child_type = result_child.scalar_one_or_none()
             
             if not child_type:
                 child_type = RequestType(name=child_data["name"], description=child_data["description"], parent_id=parent_type.id)
                 db.add(child_type)
-                await db.flush()  # ВАЖНО: flush перед изменением связей
+                await db.flush()
                 created_items.append(f"  ↳ Подтип: {child_data['name']}")
             
-            # Явно загружаем связь для ребенка
             await db.refresh(child_type, attribute_names=['allowed_requesters'])
             
-            # Определяем allowed_codes для ребенка
             child_allowed_codes = child_data.get("allowed", ["client", "employee", "partner", "anonymous"])
             parent_allowed_codes.update(child_allowed_codes)
             
-            # Устанавливаем связи для ребенка
             child_allowed_ids = [requester_map[code] for code in child_allowed_codes if code in requester_map]
             if child_allowed_ids:
                 req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(child_allowed_ids)))
-                requesters = req_result.scalars().all()
-                child_type.allowed_requesters = requesters
-                await db.flush()  # Сохраняем изменения связей
+                child_type.allowed_requesters = req_result.scalars().all()
+                await db.flush()
         
-        # Устанавливаем связи для родителя (объединение всех детей)
         parent_allowed_ids = [requester_map[code] for code in parent_allowed_codes if code in requester_map]
         if parent_allowed_ids:
             req_result = await db.execute(select(RequesterType).where(RequesterType.id.in_(parent_allowed_ids)))
-            requesters = req_result.scalars().all()
-            parent_type.allowed_requesters = requesters
+            parent_type.allowed_requesters = req_result.scalars().all()
             await db.flush()
 
     # 3. Магазины и каналы

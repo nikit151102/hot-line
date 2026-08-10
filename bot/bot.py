@@ -16,7 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Импорты maxapi
 from maxapi import Bot, Dispatcher, F
 from maxapi.types import MessageCreated, BotStarted, Command, MessageCallback, CallbackButton, ButtonsPayload, Attachment
 from maxapi.enums.intent import Intent
@@ -33,10 +32,10 @@ class HotlineBotConfig:
 # ========== СОСТОЯНИЯ ПОЛЬЗОВАТЕЛЯ ==========
 class UserState(Enum):
     IDLE = "idle"
-    AWAITING_REQUESTER_TYPE = "awaiting_requester_type"  # Ждем выбор КТО обращается (Клиент, Сотрудник)
-    AWAITING_REQUEST_TYPE = "awaiting_request_type"      # Ждем выбор ТИПА обращения (Жалоба, Вопрос)
-    AWAITING_MESSAGE = "awaiting_message"                # Ждем текст обращения
-    COMPLETED = "completed"                              # Обращение отправлено
+    AWAITING_REQUESTER_TYPE = "awaiting_requester_type"
+    AWAITING_REQUEST_TYPE = "awaiting_request_type"
+    AWAITING_MESSAGE = "awaiting_message"
+    COMPLETED = "completed"
 
 
 # ========== КЛАСС БОТА ГОРЯЧЕЙ ЛИНИИ ==========
@@ -46,11 +45,10 @@ class HotlineBot:
         self.bot = Bot(token=config.token)
         self.dp = Dispatcher()
         
-        # Хранилища данных
         self.user_states: Dict[int, UserState] = {}
         self.user_data: Dict[int, Dict[str, Any]] = {}
         
-        # Кэш типов заявителей
+        # Глобальный кэш для типов заявителей (загружается при старте, обновляется при запросах)
         self.requester_types: List[Dict[str, str]] = []
         
         self._setup_handlers()
@@ -69,13 +67,12 @@ class HotlineBot:
                 "requester_type_id": None,
                 "requester_code": None,
                 "request_type_id": None,
-                "allowed_request_types": [],  # Кэш доступных типов обращений
+                "allowed_request_types": [],
                 "completed": False
             }
         return self.user_data[user_id]
 
     def _extract_channel_id(self, text: str) -> Optional[str]:
-        """Извлекает UUID канала из текста команды /start <uuid>"""
         parts = text.strip().split()
         if len(parts) > 1:
             potential_uuid = parts[1]
@@ -83,51 +80,86 @@ class HotlineBot:
                 return potential_uuid
         return None
 
-    async def _load_requester_types(self):
-        """Загружает типы заявителей (Кто обращается) из API"""
+    async def _load_requester_types(self) -> List[Dict[str, str]]:
+        """Загружает типы заявителей из API с детальным логированием"""
         api_url = os.getenv("HOTLINE_API_URL", "http://back_tghr_department:8070").rstrip('/')
-        try:
-            response = requests.get(f"{api_url}/public/requester-types/", timeout=5)
-            if response.status_code == 200:
-                self.requester_types = response.json()
-                logger.info(f"✅ Загружено {len(self.requester_types)} типов заявителей из API")
-                return
-        except Exception as e:
-            logger.warning(f"Не удалось получить типы заявителей из API: {e}. Используются резервные.")
+        endpoint = f"{api_url}/public/requester-types/"
         
-        self.requester_types = [
-            {"id": "00000000-0000-0000-0000-000000000001", "name": "Анонимный посетитель", "code": "anonymous"},
-            {"id": "00000000-0000-0000-0000-000000000002", "name": "Клиент", "code": "client"},
+        logger.info(f"🔍 Запрос типов заявителей: {endpoint}")
+        
+        try:
+            response = requests.get(endpoint, timeout=5)
+            logger.info(f"📡 Ответ API: статус {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ Загружено {len(data)} типов заявителей из API")
+                
+                # Обновляем глобальный кэш
+                self.requester_types = data
+                return data
+            else:
+                logger.error(f"❌ API вернул ошибку: {response.status_code} - {response.text}")
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"❌ Не удалось подключиться к API ({endpoint}): {e}")
+        except requests.exceptions.Timeout:
+            logger.error(f"❌ Таймаут при запросе к API ({endpoint})")
+        except Exception as e:
+            logger.error(f"❌ Ошибка при запросе к API: {e}")
+        
+        # Резервные данные (с NIL_UUID, чтобы API точно принял их)
+        logger.warning("⚠️ Используются резервные типы заявителей")
+        return [
+            {"id": "00000000-0000-0000-0000-000000000000", "name": "Анонимный посетитель", "code": "anonymous"},
+            {"id": "00000000-0000-0000-0000-000000000000", "name": "Клиент", "code": "client"},
         ]
-        logger.info("⚠️ Используются резервные типы заявителей")
 
     async def _load_allowed_request_types(self, requester_code: str) -> List[Dict]:
         """Загружает доступные типы обращений для конкретного заявителя"""
         api_url = os.getenv("HOTLINE_API_URL", "http://back_tghr_department:8070").rstrip('/')
+        endpoint = f"{api_url}/public/request-types/allowed"
+        
+        logger.info(f"🔍 Запрос типов обращений для {requester_code}: {endpoint}")
+        
         try:
             response = requests.get(
-                f"{api_url}/public/request-types/allowed", 
+                endpoint, 
                 params={"requester_code": requester_code}, 
                 timeout=5
             )
+            logger.info(f"📡 Ответ API: статус {response.status_code}")
+            
             if response.status_code == 200:
-                return response.json()
+                data = response.json()
+                logger.info(f"✅ Загружено {len(data)} типов обращений для {requester_code}")
+                return data
+            else:
+                logger.error(f"❌ API вернул ошибку: {response.status_code} - {response.text}")
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"❌ Не удалось подключиться к API ({endpoint}): {e}")
+        except requests.exceptions.Timeout:
+            logger.error(f"❌ Таймаут при запросе к API ({endpoint})")
         except Exception as e:
-            logger.warning(f"Не удалось получить доступные типы обращений из API: {e}.")
+            logger.error(f"❌ Ошибка при запросе к API: {e}")
         
+        logger.warning("⚠️ Используются резервные типы обращений")
         return [
-            {"id": "00000000-0000-0000-0000-000000000003", "name": "Жалоба"},
-            {"id": "00000000-0000-0000-0000-000000000004", "name": "Предложение"},
+            {"id": "00000000-0000-0000-0000-000000000000", "name": "Жалоба"},
+            {"id": "00000000-0000-0000-0000-000000000000", "name": "Предложение"},
         ]
 
     async def _send_requester_type_selection(self, chat_id: int, user_id: int):
         """Шаг 1: Отправляет кнопки выбора типа заявителя"""
-        if not self.requester_types:
-            await self._load_requester_types()
+        # Всегда запрашиваем актуальные данные из API
+        requester_types = await self._load_requester_types()
+        
+        logger.info(f"📋 Показываем {len(requester_types)} типов заявителей пользователю {user_id}")
             
         buttons = []
-        for rt in self.requester_types:
-            # Формируем payload: req_<uuid>_<code>
+        for rt in requester_types:
+            logger.debug(f"  Кнопка: {rt['name']} (ID: {rt['id']}, Code: {rt['code']})")
             buttons.append([
                 CallbackButton(
                     text=rt["name"],
@@ -135,6 +167,14 @@ class HotlineBot:
                     intent=Intent.DEFAULT
                 )
             ])
+        
+        if not buttons:
+            logger.error("❌ Нет кнопок для показа!")
+            await self.bot.send_message(
+                chat_id=chat_id,
+                text="⚠️ Ошибка загрузки данных. Попробуйте позже или напишите /start"
+            )
+            return
         
         attachment = Attachment(
             type="inline_keyboard",
@@ -148,13 +188,16 @@ class HotlineBot:
         )
 
     async def _send_request_type_selection(self, chat_id: int, user_id: int, requester_code: str):
-        """Шаг 2: Отправляет кнопки выбора типа обращения на основе кода заявителя"""
+        """Шаг 2: Отправляет кнопки выбора типа обращения"""
         data = self.get_user_data(user_id)
         request_types = await self._load_allowed_request_types(requester_code)
-        data["allowed_request_types"] = request_types  # Сохраняем в кэш сессии
+        data["allowed_request_types"] = request_types
+        
+        logger.info(f"📋 Показываем {len(request_types)} типов обращений пользователю {user_id}")
             
         buttons = []
         for rt in request_types:
+            logger.debug(f"  Кнопка: {rt['name']} (ID: {rt['id']})")
             buttons.append([
                 CallbackButton(
                     text=rt["name"],
@@ -183,13 +226,14 @@ class HotlineBot:
         )
 
     def _setup_handlers(self):
-        # 1. Обработка запуска бота
         @self.dp.bot_started()
         async def handle_bot_started(event: BotStarted):
             user = event.user
             user_id = user.user_id
             chat_id = event.chat_id
             name = getattr(user, 'first_name', None) or 'пользователь'
+            
+            logger.info(f"👤 Пользователь {user_id} ({name}) запустил бота")
             
             start_param = getattr(event, 'payload', '') or ''
             self._init_user_session(user_id, start_param)
@@ -208,6 +252,8 @@ class HotlineBot:
             name = getattr(user, 'first_name', None) or 'пользователь'
             text = event.message.body.text
             
+            logger.info(f"👤 Пользователь {user_id} ({name}) ввел /start")
+            
             channel_id = self._extract_channel_id(text)
             self._init_user_session(user_id, channel_id)
             
@@ -225,7 +271,6 @@ class HotlineBot:
             )
             await event.message.answer(help_text)
 
-        # 2. Обработка нажатий на кнопки (Callback)
         @self.dp.message_callback(F.callback.payload)
         async def handle_callback(event: MessageCallback):
             payload = event.callback.payload
@@ -233,11 +278,12 @@ class HotlineBot:
             chat_id = event.message.recipient.chat_id
             data = self.get_user_data(user_id)
             
-            # ШАГ 1: Обработка выбора типа заявителя (Requester Type)
+            logger.info(f"🔘 Пользователь {user_id} нажал кнопку: {payload}")
+            
+            # ШАГ 1: Обработка выбора типа заявителя
             if payload.startswith("req_"):
                 await event.answer()
                 
-                # Парсим payload: req_<uuid>_<code>
                 parts = payload.split("_")
                 if len(parts) >= 3:
                     requester_type_id = parts[1]
@@ -247,10 +293,13 @@ class HotlineBot:
                     data["requester_code"] = requester_code
                     
                     req_name = "выбранную категорию"
+                    # Берем из глобального кэша
                     for rt in self.requester_types:
                         if rt["id"] == requester_type_id:
                             req_name = rt["name"]
                             break
+                    
+                    logger.info(f"✅ Пользователь {user_id} выбрал категорию: {req_name} (code: {requester_code})")
                     
                     self.set_state(user_id, UserState.AWAITING_REQUEST_TYPE)
                     
@@ -261,7 +310,7 @@ class HotlineBot:
                     await self._send_request_type_selection(chat_id, user_id, requester_code)
                 return
 
-            # ШАГ 2: Обработка выбора типа обращения (Request Type)
+            # ШАГ 2: Обработка выбора типа обращения
             if payload.startswith("type_"):
                 await event.answer()
                 
@@ -274,6 +323,8 @@ class HotlineBot:
                         req_type_name = rt["name"]
                         break
                 
+                logger.info(f"✅ Пользователь {user_id} выбрал тип обращения: {req_type_name}")
+                
                 self.set_state(user_id, UserState.AWAITING_MESSAGE)
                 
                 await self.bot.send_message(
@@ -282,7 +333,6 @@ class HotlineBot:
                 )
                 return
 
-        # 3. Обработка текстовых сообщений
         @self.dp.message_created(F.message.body.text)
         async def handle_text(event: MessageCreated):
             text = event.message.body.text.strip()
@@ -317,6 +367,8 @@ class HotlineBot:
                     await event.message.answer("⚠️ Сообщение слишком короткое. Пожалуйста, опишите проблему подробнее.")
                     return
                 
+                logger.info(f"💬 Пользователь {user_id} отправил текст обращения ({len(text)} символов)")
+                
                 data["message_content"] = text
                 self.set_state(user_id, UserState.COMPLETED)
                 
@@ -347,14 +399,15 @@ class HotlineBot:
         
         if start_param and re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', start_param, re.I):
             data["channel_id"] = start_param
+            logger.info(f"📍 Пользователь {user_id} начал сессию с каналом: {start_param}")
         else:
-            logger.info(f"Пользователь {user_id} начал сессию с каналом по умолчанию: {data['channel_id']}")
+            logger.info(f"📍 Пользователь {user_id} начал сессию с каналом по умолчанию: {data['channel_id']}")
 
     async def _send_to_api(self, data: Dict) -> bool:
         """Отправляет данные обращения в FastAPI backend"""
         api_url = os.getenv("HOTLINE_API_URL", "http://back_tghr_department:8070").rstrip('/')
+        endpoint = f"{api_url}/admin/journals/"
         
-        # Формируем payload. Теперь передаем оба ID: и заявителя, и типа обращения
         payload = {
             "channel_id": data["channel_id"],
             "requester_type_id": data["requester_type_id"],
@@ -364,23 +417,38 @@ class HotlineBot:
             "administrator": "Telegram Bot"
         }
         
-        endpoint = f"{api_url}/admin/journals/"  # Убедитесь, что URL совпадает с вашим роутером
+        logger.info(f"📤 Отправка обращения в API: {endpoint}")
+        logger.debug(f"Payload: {payload}")
         
         try:
             response = requests.post(endpoint, json=payload, timeout=10)
-            response.raise_for_status()
-            logger.info("✅ Обращение успешно сохранено в базе данных!")
-            return True
-        except requests.exceptions.RequestException as e:
+            logger.info(f"📡 Ответ API: статус {response.status_code}")
+            
+            if response.status_code in [200, 201]:
+                logger.info("✅ Обращение успешно сохранено в базе данных!")
+                return True
+            else:
+                logger.error(f"❌ API вернул ошибку: {response.status_code}")
+                logger.error(f"Ответ: {response.text}")
+                return False
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"❌ Не удалось подключиться к API ({endpoint}): {e}")
+            return False
+        except requests.exceptions.Timeout:
+            logger.error(f"❌ Таймаут при запросе к API ({endpoint})")
+            return False
+        except Exception as e:
             logger.error(f"❌ Ошибка при отправке в API: {e}")
             return False
 
     async def run(self):
-        """Запуск бота"""
         logger.info(f"🤖 [{self.config.name}] Бот горячей линии запускается...")
         
         # Загружаем типы заявителей при старте
+        logger.info("🔄 Первичная загрузка типов заявителей...")
         await self._load_requester_types()
+        logger.info(f"✅ Загружено {len(self.requester_types)} типов заявителей")
         
         try:
             bot_info = await self.bot.get_me()
@@ -394,29 +462,28 @@ class HotlineBot:
         except Exception as e:
             logger.warning(f"[{self.config.name}] Ошибка удаления webhook: {e}")
         
+        logger.info(f"🚀 [{self.config.name}] Бот готов к работе!")
         await self.dp.start_polling(self.bot)
 
-# ========== СОЗДАНИЕ КОНФИГУРАЦИЙ ==========
+
 def create_bot_configs() -> list:
-    """Создает конфигурации для ботов"""
+    api_url = os.getenv("HOTLINE_API_URL", "http://back_tghr_department:8070")
+    logger.info(f"🌐 API URL: {api_url}")
+    
     return [
         HotlineBotConfig(
             name="hotline_anonymous_bot",
             token=os.getenv("MAX_BOT_TOKEN"),
-            default_channel_id="00000000-0000-0000-0000-000000000000" # Замените на реальный UUID канала из БД
+            default_channel_id="00000000-0000-0000-0000-000000000000"
         )
     ]
 
 
-# ========== ГЛАВНАЯ ФУНКЦИЯ ==========
 async def main():
     logger.info("🚀 Запуск системы ботов горячей линии...")
-    
     configs = create_bot_configs()
     bots = [HotlineBot(config) for config in configs]
-    
     logger.info(f"✅ Создано {len(bots)} ботов")
-    
     tasks = [bot.run() for bot in bots]
     await asyncio.gather(*tasks)
 
