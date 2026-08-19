@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: root
       POSTGRES_DB: hot_line
     ports:
-      - "6755:5432"
+      - "7055:5432"
     volumes:
       - hot_line_db_data:/var/lib/postgresql/data
     networks:
@@ -26,8 +26,8 @@ services:
       context: .
     container_name: hot_line_api
     ports:
-      - "6710:6710"
-      - "6711:6711"
+      - "7010:7010"
+      - "7011:7011"
     volumes:
       - .:/app
     environment:
