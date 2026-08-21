@@ -387,111 +387,117 @@ async def get_hotline_stats(
 
 
 # ==============================================================================
-# 7. ИНИЦИАЛИЗАЦИЯ СПРАВОЧНИКОВ
+# 7. ИНИЦИАЛИЗАЦИЯ СПРАВОЧНИКОВ (ID ЖЕСТКО ПРОПИСАНЫ ДЛЯ СТАБИЛЬНОСТИ)
 # ==============================================================================
 REQUESTER_TYPES_DATA = [
-    {"name": "Клиент", "code": "client"},
-    {"name": "Сотрудник", "code": "employee"},
-    {"name": "Партнер / Поставщик", "code": "partner"},
-    {"name": "Анонимный посетитель", "code": "anonymous"},
+    {"id": UUID("4c146788-1150-45b2-851a-a665e320cd74"), "name": "Клиент", "code": "client"},
+    {"id": UUID("d2eff114-eb43-45ed-b7d6-a9a7dd43ab9c"), "name": "Сотрудник", "code": "employee"},
+    {"id": UUID("2e1faebd-598a-456e-b781-ff448ec55119"), "name": "Партнер / Поставщик", "code": "partner"},
+    {"id": UUID("c9aa7514-3f61-45d5-a90f-ecf38f68bedd"), "name": "Анонимный посетитель", "code": "anonymous"},
 ]
 
 STORES_DATA = [
-    {"city": "Барнаул", "street": "Красноармейский", "house": "131"},
-    {"city": "Барнаул", "street": "Мало-Тобольская", "house": "23"},
-    {"city": "Барнаул", "street": "Шевченко", "house": "157Б"},
-    {"city": "Барнаул", "street": "Космонавтов", "house": "59"},
-    {"city": "Барнаул", "street": "Северо-Западная", "house": "6"},
-    {"city": "Барнаул", "street": "Германа Титова", "house": "6"},
-    {"city": "Барнаул", "street": "Космонавтов", "house": "8/2"},
-    {"city": "Барнаул", "street": "Антона Петрова", "house": "190"},
-    {"city": "Барнаул", "street": "Взлетная", "house": "2к"},
-    {"city": "Барнаул", "street": "Павловский тракт", "house": "188"},
-    {"city": "Новоалтайск", "street": "Октябрьская", "house": "36"},
-    {"city": "Горно-Алтайск", "street": "Бийская", "house": "8/2"},
-    {"city": "Майма", "street": "Ленина", "house": "91"},
-    {"city": "Заринск", "street": "Союза Республик", "house": "16"},
-    {"city": "Алейск", "street": "Пионерская", "house": "150"},
-    {"city": "Белокуриха", "street": "Партизанская", "house": "14/1"},
-    {"city": "Бийск", "street": "Коммунарский", "house": "37"},
-    {"city": "Бийск", "street": "Советская", "house": "204/3"},
-    {"city": "Сростки", "street": "Чуйская", "house": "12"},
-    {"city": "Рубцовск", "street": "Заводская", "house": "220"},
-    {"city": "Рубцовск", "street": "Ленина", "house": "85"},
-    {"city": "Славгород", "street": "Ленина", "house": "179"},
-    {"city": "Камень на Оби", "street": "Гагарина", "house": "111/8"},
-    {"city": "Новокузнецк", "street": "Вокзальная", "house": "8А"},
-    {"city": "Новокузнецк", "street": "Кирова", "house": "111Б"},
-    {"city": "Новосибирск", "street": "Плановая", "house": "77"},
-    {"city": "Новосибирск", "street": "Гоголя", "house": "43/1"},
-    {"city": "Омск", "street": "Мира", "house": "19"},
-    {"city": "Омск", "street": "Комарова", "house": "2/2"},
-    {"city": "Томск", "street": "Герцена", "house": "61/1"},
-    {"city": "Тюмень", "street": "Мельникайте", "house": "126/3"},
-    {"city": "Белово", "street": "Советская", "house": "8"},
-    {"city": "Поспелиха", "street": "Коммунистическая", "house": "1"},
+    {"id": UUID("593b830d-b31e-45f3-93b0-65d8fd25c789"), "max_id": UUID("8d8d2093-e608-4289-9e7c-d05e70430c20"), "site_id": UUID("aaa4ad9b-f1a8-4e50-a45e-f51265e62090"), "city": "Барнаул", "street": "Красноармейский", "house": "131"},
+    {"id": UUID("7b4466bc-3371-4b95-ad62-90708159aa31"), "max_id": UUID("e8b4fa6d-9739-4391-b559-f276165a1b70"), "site_id": UUID("1be4dcb5-b3b0-44a4-ace6-9879606d0b8f"), "city": "Барнаул", "street": "Мало-Тобольская", "house": "23"},
+    {"id": UUID("1df0c6e1-dacf-450d-a06f-462edb638a6f"), "max_id": UUID("cfdbcddf-104a-4d7c-a3c8-327937f3fe48"), "site_id": UUID("1a5c6d9b-061e-4b2d-a8fe-46d26f24fc01"), "city": "Барнаул", "street": "Шевченко", "house": "157Б"},
+    {"id": UUID("a8b05dd2-c2f0-4462-a138-11dfaea5b8f6"), "max_id": UUID("83bab255-1dbb-4100-bc5d-8fd43f28a68f"), "site_id": UUID("30ec4cae-52d0-44c2-a3fb-37b9ca9e60f6"), "city": "Барнаул", "street": "Космонавтов", "house": "59"},
+    {"id": UUID("0eafadd2-ff07-4e83-953a-28b40f55fc1e"), "max_id": UUID("9c6e9555-e1f2-4e73-bcd8-1b191c53cf23"), "site_id": UUID("b499fe69-21db-4786-a739-e633397566dc"), "city": "Барнаул", "street": "Северо-Западная", "house": "6"},
+    {"id": UUID("ea3a4369-6625-452b-ac92-cd2105d271b4"), "max_id": UUID("10f93dff-a456-44aa-9aa6-97f225d530f7"), "site_id": UUID("4ca50bf6-2d2e-4994-b139-519eb5713187"), "city": "Барнаул", "street": "Германа Титова", "house": "6"},
+    {"id": UUID("fb8461bb-3161-4a3a-be13-c392e320419e"), "max_id": UUID("599d3586-f325-44c2-8cb6-974269e00ed2"), "site_id": UUID("3ad97581-5529-4eab-8242-2331c211eb2a"), "city": "Барнаул", "street": "Космонавтов", "house": "8/2"},
+    {"id": UUID("1da4103c-0400-45a3-9b91-1c62c61cb40b"), "max_id": UUID("c965be8b-abbe-4e60-907e-79ffe4b459c1"), "site_id": UUID("91e5d306-55b1-45eb-b5cd-d033d0e17972"), "city": "Барнаул", "street": "Антона Петрова", "house": "190"},
+    {"id": UUID("4c1ca409-b922-48db-b450-1ee4625968fc"), "max_id": UUID("f27a175f-246e-48d8-b795-013cce676aa6"), "site_id": UUID("66a26064-cee6-4538-a49c-dc6497794881"), "city": "Барнаул", "street": "Взлетная", "house": "2к"},
+    {"id": UUID("1a39e913-de43-48f0-8528-9c262040d77c"), "max_id": UUID("a5b94fcb-fdab-4e79-ba09-4e150cc49f4a"), "site_id": UUID("3b8f9a34-1b26-4b27-b8b5-3f37429b9640"), "city": "Барнаул", "street": "Павловский тракт", "house": "188"},
+    {"id": UUID("b9874943-cb1b-47c6-b193-9670830cdf4e"), "max_id": UUID("45af5bfc-3c05-4adb-a129-cc1330cc22ca"), "site_id": UUID("28ca0126-0e60-4000-a83f-211fb7b8900e"), "city": "Новоалтайск", "street": "Октябрьская", "house": "36"},
+    {"id": UUID("5b229c9b-5d77-4cf7-af95-4553b46681ce"), "max_id": UUID("3a6071b2-6948-41f6-8284-7626a0c799bc"), "site_id": UUID("b3f4c34d-4674-4d55-ae3e-ab7e36591169"), "city": "Горно-Алтайск", "street": "Бийская", "house": "8/2"},
+    {"id": UUID("985deac5-b9e0-464e-90ff-24232200a8a4"), "max_id": UUID("bd9f408b-4363-4a91-be3e-10aff85640ed"), "site_id": UUID("cb491730-dbca-4455-a3d9-a1677ce3e994"), "city": "Майма", "street": "Ленина", "house": "91"},
+    {"id": UUID("b3383774-5dad-489c-a014-3dd322ee7dbf"), "max_id": UUID("319258cb-bcf0-494a-8d52-cd6a0643f152"), "site_id": UUID("c82bf948-72c6-410f-9773-ec1d56d0ffd7"), "city": "Заринск", "street": "Союза Республик", "house": "16"},
+    {"id": UUID("0c616107-bc8d-46f1-a67a-a00f7a1743e8"), "max_id": UUID("95c702ea-3d26-49b6-87ac-1723109b75b1"), "site_id": UUID("ee3f270e-6131-400d-8179-6f83c17ec302"), "city": "Алейск", "street": "Пионерская", "house": "150"},
+    {"id": UUID("8a5b53a3-ce7f-498b-bea7-80935b8e7e63"), "max_id": UUID("115cb57e-4c70-4de1-8db4-4ffa86c4c72e"), "site_id": UUID("9ae78db4-6cf5-4021-9ffd-4712e7efbe4a"), "city": "Белокуриха", "street": "Партизанская", "house": "14/1"},
+    {"id": UUID("2f3153da-3681-488a-ae41-7324682883ac"), "max_id": UUID("8ccedbaf-663c-450b-b4d0-70ec5de4c6f6"), "site_id": UUID("041b9029-74fc-4173-b828-d8e64198a661"), "city": "Бийск", "street": "Коммунарский", "house": "37"},
+    {"id": UUID("ca17a74e-cb2d-4b5c-b8ca-4e060de93f52"), "max_id": UUID("d7faf01f-fe75-4ac1-b5ee-ce352314e700"), "site_id": UUID("66e2e1e9-f77c-4ad7-becf-220003a8329b"), "city": "Бийск", "street": "Советская", "house": "204/3"},
+    {"id": UUID("bd747441-29a9-4280-be9f-80ce38fea24b"), "max_id": UUID("855aa7bc-75f3-4793-bab2-f4c8ef8b75c1"), "site_id": UUID("df099715-c9e5-4f64-9e49-e128819d8fd3"), "city": "Сростки", "street": "Чуйская", "house": "12"},
+    {"id": UUID("5ddc90b9-2609-4c46-905f-e18ec6a9d494"), "max_id": UUID("c4f8e563-dc07-4514-92a9-ed72668a8da5"), "site_id": UUID("cc4da95b-5c62-4103-96aa-8fab4d9837c2"), "city": "Рубцовск", "street": "Заводская", "house": "220"},
+    {"id": UUID("efb5a2a1-588b-4004-8a51-b22d1ad404c8"), "max_id": UUID("097182cf-c3b4-4372-b84a-5307b370fd19"), "site_id": UUID("bf53be3d-ef69-48df-af82-73112eb34ae3"), "city": "Рубцовск", "street": "Ленина", "house": "85"},
+    {"id": UUID("a6ff65f2-1ba0-4991-b6d0-a1a128d63846"), "max_id": UUID("ab493a6a-5a9b-4f32-8a2d-85b55fc86eab"), "site_id": UUID("2727a070-07cb-4199-8f3f-ebb50075bc8b"), "city": "Славгород", "street": "Ленина", "house": "179"},
+    {"id": UUID("b003d405-b62c-4f63-8b95-30bf07e969d3"), "max_id": UUID("c4c582b3-7bf9-4be8-be69-757aa47f5dfe"), "site_id": UUID("4ddf6a32-723a-4f88-8ff8-6e89865ab8fc"), "city": "Камень на Оби", "street": "Гагарина", "house": "111/8"},
+    {"id": UUID("b2a78060-491c-44c9-b9aa-36d175362ce9"), "max_id": UUID("2901e937-9922-42ba-89a3-58b845788f4a"), "site_id": UUID("31325c56-b800-4b39-b380-6d10a0787a07"), "city": "Новокузнецк", "street": "Вокзальная", "house": "8А"},
+    {"id": UUID("e11fc445-424d-40bb-af5c-7d5fe77eb14c"), "max_id": UUID("9c94ccc1-0a40-411d-9b2d-281ea0e6fb47"), "site_id": UUID("329cf30e-3284-41a6-b280-a44121d9a6a7"), "city": "Новокузнецк", "street": "Кирова", "house": "111Б"},
+    {"id": UUID("2bf39adf-a6f0-4ed0-a8ce-55d8dd3eb5e5"), "max_id": UUID("ea60d92b-3a4d-43c7-acbf-1b8a13f1dd10"), "site_id": UUID("d1747c75-edb0-44e3-ae58-cc2f72881da9"), "city": "Новосибирск", "street": "Плановая", "house": "77"},
+    {"id": UUID("e84f78a4-90b7-435f-8395-e0f5900efca6"), "max_id": UUID("6744c2bd-75ce-4793-909c-2ef7294ebc40"), "site_id": UUID("541a01d4-b017-4683-aa05-775104372112"), "city": "Новосибирск", "street": "Гоголя", "house": "43/1"},
+    {"id": UUID("9eef9823-56fe-42ff-8bb6-acb35aa4bb62"), "max_id": UUID("6c816a2f-e02b-4459-b93e-a430b1ab8277"), "site_id": UUID("25ce4d90-4e58-4c90-9146-e6d8e37549a9"), "city": "Омск", "street": "Мира", "house": "19"},
+    {"id": UUID("eb08f488-b8a6-471d-9cc7-94bb6cf9f098"), "max_id": UUID("c3f7d262-7dd8-4843-969a-0f87125a6272"), "site_id": UUID("f9f69a62-5cd1-4459-9615-1abf8a92fea8"), "city": "Омск", "street": "Комарова", "house": "2/2"},
+    {"id": UUID("d6a6744d-694d-43f0-82b8-28f8d33c41f9"), "max_id": UUID("7d2da39f-f983-441d-839c-8397f34c517b"), "site_id": UUID("7881178c-bb18-41bd-a4ce-a5b286560ca4"), "city": "Томск", "street": "Герцена", "house": "61/1"},
+    {"id": UUID("f4fd388e-1e52-4232-ba84-da8ba9553481"), "max_id": UUID("aa8b0492-6b23-4700-8822-c1e0a1b5c9f9"), "site_id": UUID("06d76d83-bc25-43ae-ae80-e5e488ab67af"), "city": "Тюмень", "street": "Мельникайте", "house": "126/3"},
+    {"id": UUID("9e33b589-ec55-42ce-8b82-c1d917534a03"), "max_id": UUID("1b95956b-3713-4c46-9743-00e1a1b22d30"), "site_id": UUID("1bdb1e02-ecc9-4240-8b9c-7a7291245e80"), "city": "Белово", "street": "Советская", "house": "8"},
+    {"id": UUID("fca52be9-a366-423c-a14f-429888d600c2"), "max_id": UUID("b99ffb9e-deb6-4113-b8e7-8e8372988d04"), "site_id": UUID("d0cb5244-95c5-4102-8d1d-fb2427fcf117"), "city": "Поспелиха", "street": "Коммунистическая", "house": "1"},
 ]
 
 REQUEST_TYPES_TREE = [
     {
+        "id": UUID("774d5c21-9dd1-4ae2-ab5d-3d542074804d"),
         "name": "Жалоба", "description": "Негативный отзыв о товаре, сервисе или работе",
         "children": [
-            {"name": "Качество товара", "description": "Брак, просрочка", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Обслуживание персонала", "description": "Грубость, хамство", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Чистота и порядок", "description": "Грязь, беспорядок", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Работа кассы", "description": "Очереди, ошибки", "allowed": ["client", "anonymous"]},
-            {"name": "Цены и ценники", "description": "Несоответствие цен", "allowed": ["client", "employee", "anonymous"]},
-            {"name": "Работа сайта", "description": "Ошибки на сайте", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Работа MAX-бота", "description": "Бот не отвечает", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Доставка", "description": "Опоздание, повреждение", "allowed": ["client", "partner", "anonymous"]},
-            {"name": "Возврат товара", "description": "Отказ в возврате", "allowed": ["client", "employee"]},
+            {"id": UUID("d4eb36c5-156b-4bdc-89d4-ce0b5f4f8558"), "name": "Качество товара", "description": "Брак, просрочка", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("acd81935-10f9-45de-9a8d-7bf160fc23f8"), "name": "Обслуживание персонала", "description": "Грубость, хамство", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("3335b783-577d-476a-86ca-96df641eb3b4"), "name": "Чистота и порядок", "description": "Грязь, беспорядок", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("aeed2d94-6aa1-4027-8c93-39d27dc7e574"), "name": "Работа кассы", "description": "Очереди, ошибки", "allowed": ["client", "anonymous"]},
+            {"id": UUID("c39056a7-24f0-4088-ba7b-094083003a61"), "name": "Цены и ценники", "description": "Несоответствие цен", "allowed": ["client", "employee", "anonymous"]},
+            {"id": UUID("e4aef8d3-0292-4723-9269-34d1035cfd02"), "name": "Работа сайта", "description": "Ошибки на сайте", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("63074328-bd07-4f81-8a58-423347dfbf9d"), "name": "Работа MAX-бота", "description": "Бот не отвечает", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("8a61cba2-8d36-4a41-8b1b-b7bca6488181"), "name": "Доставка", "description": "Опоздание, повреждение", "allowed": ["client", "partner", "anonymous"]},
+            {"id": UUID("90724749-1041-494b-bdd7-064286841fa4"), "name": "Возврат товара", "description": "Отказ в возврате", "allowed": ["client", "employee"]},
         ]
     },
     {
+        "id": UUID("c3d5a6c3-36ce-40cb-85ca-ad1cec9262e2"),
         "name": "Предложение", "description": "Идеи по улучшению работы компании",
         "children": [
-            {"name": "Ассортимент", "description": "Добавить новые товары", "allowed": ["client", "employee", "partner"]},
-            {"name": "Улучшение сервиса", "description": "Идеи по качеству", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Программа лояльности", "description": "Бонусы и скидки", "allowed": ["client", "employee"]},
-            {"name": "Акции и распродажи", "description": "Маркетинговые идеи", "allowed": ["client", "employee", "partner"]},
-            {"name": "Корпоративные процессы", "description": "Внутренние предложения", "allowed": ["employee", "partner"]},
+            {"id": UUID("c3d47926-bbd9-492f-bd88-8238cfd15131"), "name": "Ассортимент", "description": "Добавить новые товары", "allowed": ["client", "employee", "partner"]},
+            {"id": UUID("dca0f85e-8ca8-45c1-9648-2b6638bff05a"), "name": "Улучшение сервиса", "description": "Идеи по качеству", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("3d9a1de3-6e85-4b51-b8bd-b164df133cb7"), "name": "Программа лояльности", "description": "Бонусы и скидки", "allowed": ["client", "employee"]},
+            {"id": UUID("c0012bcb-aa7c-43c5-9851-266b7ab538e8"), "name": "Акции и распродажи", "description": "Маркетинговые идеи", "allowed": ["client", "employee", "partner"]},
+            {"id": UUID("6e88c16d-9b50-48e3-8bde-2c795b9789f2"), "name": "Корпоративные процессы", "description": "Внутренние предложения", "allowed": ["employee", "partner"]},
         ]
     },
     {
+        "id": UUID("a559a140-cae9-4f54-b1da-f4aa066dd6b4"),
         "name": "Вопрос", "description": "Запрос справочной информации",
         "children": [
-            {"name": "Наличие товара", "description": "Уточнение остатков", "allowed": ["client", "anonymous"]},
-            {"name": "Условия сотрудничества", "description": "Вопросы от поставщиков", "allowed": ["partner", "employee"]},
-            {"name": "Вакансии и трудоустройство", "description": "Вопросы о работе", "allowed": ["employee", "partner"]},
-            {"name": "График работы", "description": "Часы работы", "allowed": ["client", "anonymous"]},
+            {"id": UUID("3e940281-bdff-4033-90a4-878a277e0e83"), "name": "Наличие товара", "description": "Уточнение остатков", "allowed": ["client", "anonymous"]},
+            {"id": UUID("1505e79b-1de7-4ad0-9896-380d442cf5ca"), "name": "Условия сотрудничества", "description": "Вопросы от поставщиков", "allowed": ["partner", "employee"]},
+            {"id": UUID("7637a89f-5a0f-47ca-8a39-d74479636633"), "name": "Вакансии и трудоустройство", "description": "Вопросы о работе", "allowed": ["employee", "partner"]},
+            {"id": UUID("c11d9d2d-e0a4-423d-9cad-1612dea46ae1"), "name": "График работы", "description": "Часы работы", "allowed": ["client", "anonymous"]},
         ]
     },
     {
+        "id": UUID("50818cf3-ce20-442f-ad9c-a9a690581342"),
         "name": "Благодарность", "description": "Положительный отзыв о работе",
         "children": [
-            {"name": "Сотруднику", "description": "Благодарность сотруднику", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Магазину", "description": "Благодарность команде", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Качеству товара", "description": "Отзыв о продукции", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Сервису доставки", "description": "Благодарность курьеру", "allowed": ["client", "partner", "anonymous"]},
+            {"id": UUID("96fb9b67-b98f-440f-a4c5-237bfbf49e57"), "name": "Сотруднику", "description": "Благодарность сотруднику", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("3ccb33f2-f5f6-417d-b248-7c92e53b8651"), "name": "Магазину", "description": "Благодарность команде", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("41237ffe-8171-459f-8cb8-5e4fb0c5d422"), "name": "Качеству товара", "description": "Отзыв о продукции", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("499333b1-e57e-4a12-abff-d41b58aa0ca0"), "name": "Сервису доставки", "description": "Благодарность курьеру", "allowed": ["client", "partner", "anonymous"]},
         ]
     },
     {
+        "id": UUID("de8d7d5d-6796-4671-aa18-ad981ebc9fbe"),
         "name": "Нарушение / Этика", "description": "Серьезные нарушения",
         "children": [
-            {"name": "Конфликтная ситуация", "description": "Скандал, угрозы", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Нарушение стандартов", "description": "Несоблюдение регламентов", "allowed": ["employee", "partner"]},
-            {"name": "Безопасность", "description": "Угроза здоровью", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Мошенничество", "description": "Обман, махинации", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Коррупция", "description": "Взяточничество", "allowed": ["employee", "partner"]},
+            {"id": UUID("ce788c97-dc70-42d5-9fd1-6b35d9b298b5"), "name": "Конфликтная ситуация", "description": "Скандал, угрозы", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("57d36bc5-15c9-470d-b4e2-17b28e224b03"), "name": "Нарушение стандартов", "description": "Несоблюдение регламентов", "allowed": ["employee", "partner"]},
+            {"id": UUID("5cb1afef-5e64-4bf8-8dd1-199284b8fe07"), "name": "Безопасность", "description": "Угроза здоровью", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("98dbe042-32f6-4092-934a-e2d887df3108"), "name": "Мошенничество", "description": "Обман, махинации", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("0b599e80-b3cf-4863-b739-d332e0da833f"), "name": "Коррупция", "description": "Взяточничество", "allowed": ["employee", "partner"]},
         ]
     },
     {
+        "id": UUID("2d2c02a9-db95-4a23-898a-a1326696324b"),
         "name": "Техническая проблема", "description": "Проблемы с IT-системами",
         "children": [
-            {"name": "Ошибка на сайте", "description": "Не работает кнопка", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Проблема с оплатой", "description": "Не проходит платеж", "allowed": ["client", "employee", "partner", "anonymous"]},
-            {"name": "Личный кабинет", "description": "Не входит, забыл пароль", "allowed": ["client", "employee", "partner"]},
-            {"name": "Внутренние IT-системы", "description": "Проблемы с кассой, 1С", "allowed": ["employee"]},
+            {"id": UUID("3e549f08-f199-43b8-bbae-55d8e4c0c2e6"), "name": "Ошибка на сайте", "description": "Не работает кнопка", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("4488fcc5-fb8b-43f0-bf92-9f918847ca7e"), "name": "Проблема с оплатой", "description": "Не проходит платеж", "allowed": ["client", "employee", "partner", "anonymous"]},
+            {"id": UUID("f8b67a4a-c5ca-48bc-b713-f2c2e635e874"), "name": "Личный кабинет", "description": "Не входит, забыл пароль", "allowed": ["client", "employee", "partner"]},
+            {"id": UUID("2860e7b2-888f-4d17-a2dd-61739879dd13"), "name": "Внутренние IT-системы", "description": "Проблемы с кассой, 1С", "allowed": ["employee"]},
         ]
     },
 ]
@@ -525,7 +531,7 @@ async def init_default_data(db: AsyncSession):
     # 1. Заявители
     requester_map = {"none": NIL_UUID}
     for r_data in REQUESTER_TYPES_DATA:
-        result = await db.execute(select(RequesterType).where(RequesterType.code == r_data["code"]))
+        result = await db.execute(select(RequesterType).where(RequesterType.id == r_data["id"]))
         req_type = result.scalar_one_or_none()
         if not req_type:
             req_type = RequesterType(**r_data)
@@ -536,11 +542,11 @@ async def init_default_data(db: AsyncSession):
 
     # 2. Типы обращений
     for type_data in REQUEST_TYPES_TREE:
-        result_parent = await db.execute(select(RequestType).where(RequestType.name == type_data["name"], RequestType.parent_id == None))
+        result_parent = await db.execute(select(RequestType).where(RequestType.id == type_data["id"]))
         parent_type = result_parent.scalar_one_or_none()
         
         if not parent_type:
-            parent_type = RequestType(name=type_data["name"], description=type_data["description"])
+            parent_type = RequestType(id=type_data["id"], name=type_data["name"], description=type_data["description"])
             db.add(parent_type)
             await db.flush()
             created_items.append(f"📂 Тип: {type_data['name']}")
@@ -549,11 +555,11 @@ async def init_default_data(db: AsyncSession):
         parent_allowed_codes = set()
         
         for child_data in type_data.get("children", []):
-            result_child = await db.execute(select(RequestType).where(RequestType.name == child_data["name"], RequestType.parent_id == parent_type.id))
+            result_child = await db.execute(select(RequestType).where(RequestType.id == child_data["id"]))
             child_type = result_child.scalar_one_or_none()
             
             if not child_type:
-                child_type = RequestType(name=child_data["name"], description=child_data["description"], parent_id=parent_type.id)
+                child_type = RequestType(id=child_data["id"], name=child_data["name"], description=child_data["description"], parent_id=parent_type.id)
                 db.add(child_type)
                 await db.flush()
                 created_items.append(f"  ↳ Подтип: {child_data['name']}")
@@ -579,23 +585,33 @@ async def init_default_data(db: AsyncSession):
     for data in STORES_DATA:
         store_name = f"{data['city']}, {data['street']}, {data['house']}"
         store_address = f"{data['city']}, ул. {data['street']}, д. {data['house']}"
-        result_store = await db.execute(select(Store).where(Store.name == store_name))
+        result_store = await db.execute(select(Store).where(Store.id == data["id"]))
         store = result_store.scalar_one_or_none()
         if not store:
-            store = Store(name=store_name, address=store_address)
+            store = Store(id=data["id"], name=store_name, address=store_address)
             db.add(store)
             await db.flush()
             created_items.append(f"🏪 Магазин: {store_name}")
 
-        result_max = await db.execute(select(HotlineChannel).where(HotlineChannel.store_id == store.id, HotlineChannel.channel_type == "MAX"))
+        result_max = await db.execute(select(HotlineChannel).where(HotlineChannel.id == data["max_id"]))
         if not result_max.scalar_one_or_none():
-            channel_id_max = uuid.uuid4()
-            db.add(HotlineChannel(id=channel_id_max, store_id=store.id, channel_type="MAX", name=f"MAX Бот - {store_name}", max_url=f"https://max.ru/id5404205450_4_bot?start={channel_id_max}"))
+            db.add(HotlineChannel(
+                id=data["max_id"], store_id=store.id, channel_type="MAX", 
+                name=f"MAX Бот - {store_name}", 
+                max_url=f"https://max.ru/id5404205450_4_bot?start={data['max_id']}"
+            ))
+            await db.flush()
+            created_items.append(f"  ↳ Канал MAX: {store_name}")
 
-        result_site = await db.execute(select(HotlineChannel).where(HotlineChannel.store_id == store.id, HotlineChannel.channel_type == "Сайт"))
+        result_site = await db.execute(select(HotlineChannel).where(HotlineChannel.id == data["site_id"]))
         if not result_site.scalar_one_or_none():
-            channel_id_site = uuid.uuid4()
-            db.add(HotlineChannel(id=channel_id_site, store_id=store.id, channel_type="Сайт", name=f"Сайт - {store_name}", site_url=f"https://пакетон.рф/hotline?pkt_ch={channel_id_site}"))
+            db.add(HotlineChannel(
+                id=data["site_id"], store_id=store.id, channel_type="Сайт", 
+                name=f"Сайт - {store_name}", 
+                site_url=f"https://пакетон.рф/hotline?pkt_ch={data['site_id']}"
+            ))
+            await db.flush()
+            created_items.append(f"  ↳ Канал Сайт: {store_name}")
 
     await db.commit()
     if created_items:
